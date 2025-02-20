@@ -1,1 +1,4 @@
+# Ignore dotenv environment variables file
+.env
 node_modules
+.vscode
