@@ -1,5 +1,6 @@
 const { TwitterApi } = require("twitter-api-v2");
 const axios = require("axios");
+const Holidays = require("japanese-holidays"); // 日本の祝日判定ライブラリ
 require("dotenv").config();
 
 // 環境変数から基本情報を取得
@@ -32,6 +33,14 @@ const getThreeMonthsLater = (startDate) => {
 const START_DATE = getNextDay();
 const END_DATE = getThreeMonthsLater(START_DATE);
 
+// 祝前日判定関数
+const isHolidayEve = (date) => {
+  const nextDay = new Date(date);
+  nextDay.setDate(nextDay.getDate() + 1);
+  return Holidays.isHoliday(nextDay);
+};
+
+// 金曜・土曜・祝前日のみ取得する
 const getDatesInRange = (startDate, endDate) => {
   const start = new Date(startDate);
   const end = new Date(endDate);
@@ -41,10 +50,16 @@ const getDatesInRange = (startDate, endDate) => {
     const checkin = new Date(start);
     const checkout = new Date(start);
     checkout.setDate(checkin.getDate() + 1);
-    dates.push({
-      checkinDate: checkin.toISOString().split("T")[0],
-      checkoutDate: checkout.toISOString().split("T")[0],
-    });
+
+    const dayOfWeek = checkin.getDay(); // 0:日, 1:月, 2:火, ..., 6:土
+
+    if (dayOfWeek === 5 || dayOfWeek === 6 || isHolidayEve(checkin)) {
+      dates.push({
+        checkinDate: checkin.toISOString().split("T")[0],
+        checkoutDate: checkout.toISOString().split("T")[0],
+      });
+    }
+
     start.setDate(start.getDate() + 1);
   }
 
@@ -63,6 +78,10 @@ const formatDate = (dateString) => {
 const dates = getDatesInRange(START_DATE, END_DATE);
 
 const checkAvailability = async () => {
+  if (dates.length === 0) {
+    return;
+  }
+
   const { checkinDate, checkoutDate } = dates.shift();
 
   try {
