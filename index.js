@@ -78,10 +78,6 @@ const formatDate = (dateString) => {
 const dates = getDatesInRange(START_DATE, END_DATE);
 
 const checkAvailability = async () => {
-  if (dates.length === 0) {
-    return;
-  }
-
   const { checkinDate, checkoutDate } = dates.shift();
 
   try {
