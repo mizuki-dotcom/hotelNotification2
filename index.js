@@ -119,7 +119,7 @@ const checkAvailability = async () => {
 
 #TDS #disney #トイストーリーホテル #pr`;
 
-      await sendTwitterNotification(message);
+      await sendTwitterNotification(message, checkinDate);
     }
   } catch (error) {
     if (error?.response?.status !== 404) {
@@ -135,11 +135,12 @@ const checkAvailability = async () => {
   }
 };
 
-const sendTwitterNotification = async (message) => {
+const sendTwitterNotification = async (message, checkinDate) => {
   try {
     await twitterClient.v2.tweet(message);
   } catch (error) {
     console.error("tweet中にエラーが発生しました:", error);
+    console.error(`チェックイン: ${checkinDate}`);
   }
 };
 
