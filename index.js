@@ -3,6 +3,9 @@ const axios = require("axios");
 const Holidays = require("japanese-holidays"); // 日本の祝日判定ライブラリ
 require("dotenv").config();
 
+// 実行中に発生したエラーを蓄積する配列
+const __errors = [];
+
 // 環境変数から基本情報を取得
 const {
   RAKUTEN_API_KEY,
@@ -156,28 +159,37 @@ const checkAvailability = async () => {
 
 #TDS #disney #トイストーリーホテル #pr`;
 
-      await sendTwitterNotification(message);
+      await sendTwitterNotification(message, checkinDate);
     }
   } catch (error) {
+    // 404 は完全に無視（記録もしない）、それ以外は記録してログ出力
     if (error?.response?.status !== 404) {
-      console.error(
-        `エラーが発生しました (チェックイン: ${checkinDate}):`,
-        error,
-      );
+      __errors.push({ checkinDate, error: error?.toString() || error });
+      console.error(`エラーが発生しました (チェックイン: ${checkinDate}):`, error);
     }
   }
 
-  if (dates.length > 0) {
-    setTimeout(checkAvailability, 1000); // 1秒遅らせる
-  }
+    if (dates.length > 0) {
+      setTimeout(checkAvailability, 1000); // 1秒遅らせる
+    } else {
+      // 全ての処理が終わったタイミングでエラーが一度でも発生していれば例外を投げる
+      if (__errors.length > 0) {
+        const messages = __errors
+          .map((e) => `チェックイン:${e.checkinDate} -> ${e.error}`)
+          .join("\n");
+        throw new Error(`処理中にエラーが発生しました:\n${messages}`);
+      }
+    }
 };
 
-const sendTwitterNotification = async (message) => {
+const sendTwitterNotification = async (message, checkinDate) => {
   try {
     await twitterClient.v2.tweet(message);
   } catch (error) {
+    // エラーを記録しつつログを出す
+    __errors.push({ checkinDate, error: error?.toString() || error });
     console.error("tweet中にエラーが発生しました:", error);
-    console.error(`チェックイン: ${checkinDate}`);
+    if (checkinDate) console.error(`チェックイン: ${checkinDate}`);
   }
 };
 
